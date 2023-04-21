@@ -1,4 +1,5 @@
 <h1>CrossPlatform GUI for MultiHeadNetwork</h1>
+
 CrossPlatform GUI for MultiHeadNetwork is a Python application that provides a graphical user interface for working with multi-head neural networks. 
 
 It allows users to create, train, and evaluate multi-head networks on various platforms, including Windows, macOS, and Linux. 
