@@ -1,0 +1,11 @@
+# base requirements
+opencv-python
+numpy
+pyqt5
+
+#inference requirements
+onnx
+onnxoptimizer
+onnxruntime-gpu
+onnx-simplifier
+protobuf
