@@ -2,7 +2,7 @@ import cv2
 from mhn.model import MHN, simplified_model
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QGridLayout
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QGridLayout, QPushButton
 import numpy as np
 import sys
 import time
@@ -11,8 +11,7 @@ import time
 class VideoPlayer(QMainWindow):
     def __init__(self, parent=None, video='1.mp4', **kwargs):
         super(VideoPlayer, self).__init__(parent)
-
-        self.video_capture = cv2.VideoCapture(video)
+        self.video = video
         self.initialize_model()
         self.create_windows()
 
@@ -25,33 +24,51 @@ class VideoPlayer(QMainWindow):
 
         layout = QGridLayout()
 
+        self.start_button = QPushButton("Start inference", self)
+        layout.addWidget(self.start_button, 1, 0)
+        self.start_button.clicked.connect(self.button_clicked)
+
+        self.pause_button = QPushButton("Pause inference", self)
+        layout.addWidget(self.pause_button, 2, 0)
+
+        self.stop_button = QPushButton("Stop inference", self)
+        layout.addWidget(self.stop_button, 3, 0)
+        self.stop_button.clicked.connect(self.start_capture)
+
         self.label1 = QLabel("Detection", self)
-        layout.addWidget(self.label1, 0, 1, 1, 2)
+        layout.addWidget(self.label1, 0, 3, 1, 2)
 
         self.label2 = QLabel("Segmentation", self)
-        layout.addWidget(self.label2, 0, 3, 1, 2)
+        layout.addWidget(self.label2, 0, 5, 1, 2)
 
         self.video_label1 = QLabel(self)
-        layout.addWidget(self.video_label1, 1, 0, 1, 2)
+        layout.addWidget(self.video_label1, 1, 2, 1, 2)
 
         self.video_label2 = QLabel(self)
-        layout.addWidget(self.video_label2, 1, 2, 1, 2)
+        layout.addWidget(self.video_label2, 1, 4, 1, 2)
 
         self.label3 = QLabel("Joint Prediction", self)
-        layout.addWidget(self.label3, 2, 2, 1, 2)
+        layout.addWidget(self.label3, 2, 4, 1, 2)
 
         self.video_label3 = QLabel(self)
-        layout.addWidget(self.video_label3, 3, 1, 1, 2)
+        layout.addWidget(self.video_label3, 3, 3, 1, 2)
 
         self.frame_count = 0
         self.central_widget = QWidget()
         self.central_widget.setLayout(layout)
         self.setCentralWidget(self.central_widget)
 
+        self.start_capture()
+
+    def start_capture(self):
+        self.empty_frame()
+        self.video_capture = cv2.VideoCapture(self.video)
+
+    def button_clicked(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(lambda: self.update_frame(self.video_capture))
 
-        self.timer.start(30)
+        self.timer.start(1)
 
     def update_frame(self, vid_cap):
         ret, frame = vid_cap.read()
@@ -79,26 +96,22 @@ class VideoPlayer(QMainWindow):
             self.video_label3.setPixmap(draw_all)
 
         except:
-            frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-            frame = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
-            frame = QPixmap.fromImage(frame)
             if self.frame_count % 10 == 0:
                 time.sleep(10)
-            
-            self.video_label1.setPixmap(frame)
-            self.video_label2.setPixmap(frame)
-            self.video_label3.setPixmap(frame)
+            self.empty_frame()
 
             self.counter += 1
             if self.counter == 100:
                 sys.exit(0)
 
+        self.pause_button.clicked.connect(self.timer.stop)
+
     def initialize_model(self):
-        print("Model Initializing")
+        # print("Model Initializing")
         model_path = "mhn/weights/mhn_regnety_384x640.onnx"
         anchor_path = "mhn/weights/mhn_regnety_anchors_384x640.npy"
         simplified_model(model_path) # Remove unused nodes
-        self.roadEstimator = MHN(model_path, anchor_path, conf_thres=0.5, iou_thres=0.5)
+        self.roadEstimator = MHN(model_path, anchor_path, conf_thres=0.25, iou_thres=0.5)
 
     def infer(self, frame):
         t1 = time.time()
@@ -109,6 +122,13 @@ class VideoPlayer(QMainWindow):
         print(f"{1 / (time.time() - t1)} fps")
         return draw_boxes, draw_segmentation, draw_all
 
+    def empty_frame(self):
+        frame = np.zeros((360, 640, 3), dtype=np.uint8)
+        frame = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
+        frame = QPixmap.fromImage(frame)
+        self.video_label1.setPixmap(frame)
+        self.video_label2.setPixmap(frame)
+        self.video_label3.setPixmap(frame)
 
 if __name__ == '__main__':
     app = QApplication([])
