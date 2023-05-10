@@ -1,8 +1,8 @@
 import cv2
 from mhn.model import MHN, simplified_model
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QGridLayout, QPushButton
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 import numpy as np
 import sys
 import time
@@ -20,13 +20,17 @@ class VideoPlayer(QMainWindow):
         
         self.width, self.height = 640, 360
         self.counter = 0 #time_out
-        self.setWindowTitle("Video Player")
+        self.setWindowTitle("Object detection and Semantic Segmenatation model inference interface")
 
         layout = QGridLayout()
 
-        self.start_button = QPushButton("Start inference", self)
-        layout.addWidget(self.start_button, 1, 0)
+        self.start_button = QPushButton("Start", self)
+        self.start_button.setGeometry(0, 0, 100, 100)
+        self.start_button.setStyleSheet("border-radius : 50;"
+                                        "border : 2px solid black")
+        layout.addWidget(self.start_button, 1, 1, 1, 1)
         self.start_button.clicked.connect(self.button_clicked)
+
 
         self.pause_button = QPushButton("Pause inference", self)
         layout.addWidget(self.pause_button, 2, 0)
@@ -74,7 +78,7 @@ class VideoPlayer(QMainWindow):
             self.video_capture = cv2.VideoCapture(self.video)
         self.timer.timeout.connect(lambda: self.update_frame(self.video_capture))
 
-        self.timer.start(1)
+        self.timer.start(30)
 
     def update_frame(self, vid_cap):
         self.ret, frame = vid_cap.read()
@@ -132,7 +136,7 @@ class VideoPlayer(QMainWindow):
         return draw_boxes, draw_segmentation, draw_all
 
     def empty_frame(self):
-        frame = np.zeros((360, 640, 3), dtype=np.uint8)
+        frame = np.zeros((360, 640, 3), dtype=np.float16)
         frame = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
         frame = QPixmap.fromImage(frame)
         self.video_label1.setPixmap(frame)
@@ -141,6 +145,6 @@ class VideoPlayer(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
-    player = VideoPlayer(video='inference/bridge_songdo.mp4')
+    player = VideoPlayer(video='inference/shorts_songdo.mp4')
     player.show()
     app.exec_()
